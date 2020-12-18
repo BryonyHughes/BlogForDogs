@@ -26,7 +26,8 @@ class PostController extends Controller
      */
     public function create()
     {
-        //
+        return view('posts.create');
+
     }
 
     /**
@@ -37,7 +38,21 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validatedData = $request->validate([
+          'title'=>'required|max:255',
+          'post'=>'required',
+          'user_id'=>'required|numeric',
+        ]);
+
+        $p  = new Post;
+        $p->title = $validatedData['title'];
+        $p->post = $validatedData['post'];
+        $p->user_id = $validatedData['user_id'];
+        $p->save();
+        session()->flash('message','Posted!');
+        return redirect()->route('posts.index');
+
+
     }
 
     /**
