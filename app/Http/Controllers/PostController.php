@@ -14,8 +14,8 @@ class PostController extends Controller
      */
     public function index()
     {
-        $posts = Post::all();
-        $posts = Post::paginate(8);
+        // Get all Posts, ordered by the newest first
+        $posts = Post::orderBy('created_at', 'desc')->paginate(8);
         return view('posts.index',['posts' => $posts]);
     }
 
@@ -98,6 +98,11 @@ class PostController extends Controller
      */
     public function destroy($id)
     {
-        //
+      $post=Post::findOrFail($id);
+      //$user_id = Auth::user();
+      //$post = Post::where('post_id', $id)->where('user_id',$user_id)-get();
+      $post->delete();
+
+      return redirect()->route('posts.index')->with('message','Post was deleted!');
     }
 }
