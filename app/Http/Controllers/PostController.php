@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Post;
 
+use App\Comment;
+use App\Notifications\CommentPosted;
+
 class PostController extends Controller
 {
     /**
@@ -41,14 +44,21 @@ class PostController extends Controller
         $validatedData = $request->validate([
           'title'=>'required|max:255',
           'post'=>'required',
-          'user_id'=>'required|numeric',
         ]);
 
         $p  = new Post;
         $p->title = $validatedData['title'];
         $p->post = $validatedData['post'];
-        $p->user_id = $validatedData['user_id'];
+        $p->user_id = auth()->user()->id;
+
+        if ($request->hasFile('post_image')){
+          $imageName = time().'.'.$request->post_image->extension();
+          $request->post_image->move(public_path('images'), $imageName);
+          $p->image = $imageName;
+        }
+
         $p->save();
+
         session()->flash('message','Posted!');
         return redirect()->route('posts.index');
 
@@ -64,7 +74,10 @@ class PostController extends Controller
     public function show($id)
     {
         $post = Post::findOrFail($id);
-        return view('posts.show', ['post'=> $post]);
+        $comments = Comment::where('post_id', '=', $id)->paginate(10);
+        return view('posts.show')->with(array('post'=>$post,'comments'=>$comments));
+
+
     }
 
     /**
@@ -99,10 +112,11 @@ class PostController extends Controller
     public function destroy($id)
     {
       $post=Post::findOrFail($id);
-      //$user_id = Auth::user();
-      //$post = Post::where('post_id', $id)->where('user_id',$user_id)-get();
       $post->delete();
 
       return redirect()->route('posts.index')->with('message','Post was deleted!');
     }
+
+
+
 }
