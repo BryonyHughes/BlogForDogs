@@ -2,9 +2,19 @@
 
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
 
 use App\Comment;
+use App\Post;
+use App\User;
+use Auth;
+use App\Notifications\CommentPosted;
+
+
+
+
+
 
 class CommentController extends Controller
 {
@@ -58,7 +68,8 @@ class CommentController extends Controller
      */
     public function edit($id)
     {
-        //
+      $comment = Comment::findOrFail($id);
+      return view('comments.edit')->with(array('comment'=>$comment));
     }
 
     /**
@@ -70,7 +81,13 @@ class CommentController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+          $comment = Comment::findOrFail($id);
+          $comment->body = $request->body;
+          $comment->save();
+
+          
+          return redirect()->route('posts.index')->with('message','Comment updated!');
+
     }
 
     /**
@@ -81,34 +98,56 @@ class CommentController extends Controller
      */
     public function destroy($id)
     {
-        //
+      $comment=Comment::findOrFail($id);
+      $post = Post::where('comment_id', '=', $id);
+
+      $comment->delete();
+
+      return redirect()->route('posts.index')->with('message','Comment was deleted!');
     }
 
-    public function page()
+    public function page($id)
     {
-      return view('comments.index');
+      $post = Post::findOrFail($id);
+      $comments = Comment::where('post_id', '=', $id);
+    //  return view('comments.index')->with('post'=>$post);
+    //  return view('comments.index',['post' => $post]);
+    return view('comments.index')->with(array('post'=>$post,'comments'=>$comments));
     }
 
-    public function apiIndex()
+    public function apiIndex($id) //Post $post
     {
-      $comments = Comment::all();
-      return $comments;
+       $post = Post::findOrFail($id);
+       $comments = Comment::where('post_id', '=', $id);
+      //return view('posts.show')->with(array('post'=>$post,'comments'=>$comments));
+
+        //$post = Post::findOrFail($id);
+      //  $comments = Comment::where('post_id', '=', $id)->paginate(10);
+      //  return view('comments.index')->with(array('post'=>$post,'comments'=>$comments));
+    // $comments = Comment::all();
+     return $comments;
     }
 
-    public function apiStore(Request $request)
+    public function apiStore(Request $request,$id) //Post $post_id)
     {
       $validatedData = $request->validate([
         'body'=>'required',
       ]);
 
+      $post =Post::findOrFail($id);
+
       $c  = new Comment;
       $c->body = $validatedData['body'];
-      $c->post_id =22 ;
-      $c->user_id = 5;
+      $c->post_id = $post->id;
+      $c->user_id = auth()->user()->id;
       $c->save();
+      $user = auth()->user();
+
+      $post->user->notify(new CommentPosted($post, $user));
 
       return response($c);
 
+    //  return view('posts.show')->with(array('post'=>$post,'comments'=>$c));
     }
 
 
